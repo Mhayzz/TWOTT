@@ -1,5 +1,6 @@
 import { Events, MessageFlags } from 'discord.js';
 import { errorEmbed } from '../lib/embeds.js';
+import { handleTicketInteraction } from '../tickets/handlers.js';
 
 export default {
   name: Events.InteractionCreate,
@@ -9,6 +10,15 @@ export default {
         const command = client.commands.get(interaction.commandName);
         if (!command) return;
         await command.execute(interaction, client);
+        return;
+      }
+
+      const id = interaction.customId;
+      if (!id) return;
+
+      if (id.startsWith('ticket:')) {
+        await handleTicketInteraction(interaction);
+        return;
       }
     } catch (err) {
       console.error('Erreur interaction:', err);

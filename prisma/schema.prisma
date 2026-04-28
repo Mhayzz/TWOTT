@@ -8,8 +8,37 @@ datasource db {
 }
 
 model GuildConfig {
-  guildId         String   @id
-  ipChannelId     String?
-  statusChannelId String?
-  updatedAt       DateTime @updatedAt
+  guildId            String   @id
+  ipChannelId        String?
+  statusChannelId    String?
+
+  // Ticket system
+  ticketCategoryId   String?
+  ticketStaffRoleId  String?
+  ticketLogChannelId String?
+  ticketAcceptRoleId String?
+  ticketCounter      Int      @default(0)
+
+  updatedAt          DateTime @updatedAt
+}
+
+model Ticket {
+  id             String    @id @default(cuid())
+  number         Int
+  guildId        String
+  channelId      String    @unique
+  applicantId    String
+  status         String    @default("OPEN") // OPEN | ACCEPTED | REJECTED | CLOSED
+  mcUsername     String
+  age            String?
+  saoLevel       String?
+  motivation     String
+  createdAt      DateTime  @default(now())
+  closedAt       DateTime?
+  closedById     String?
+  decisionReason String?
+
+  @@index([guildId])
+  @@index([applicantId])
+  @@index([status])
 }
