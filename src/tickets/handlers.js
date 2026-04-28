@@ -21,11 +21,16 @@ const DELETE_DELAY_MS = 5000;
  * fully configured via Railway env vars without running /ticket config.
  */
 function resolveConfig(config) {
+  const primaryAccept = config?.ticketAcceptRoleId ?? process.env.TICKET_ACCEPT_ROLE_ID ?? null;
+  const secondaryAccept = process.env.TICKET_ACCEPT_ROLE_ID_2 ?? null;
+  const acceptRoleIds = [primaryAccept, secondaryAccept].filter(Boolean);
+
   return {
     ticketCategoryId: config?.ticketCategoryId ?? process.env.TICKET_CATEGORY_ID ?? null,
     ticketStaffRoleId: config?.ticketStaffRoleId ?? process.env.TICKET_STAFF_ROLE_ID ?? null,
     ticketLogChannelId: config?.ticketLogChannelId ?? process.env.TICKET_LOG_CHANNEL_ID ?? null,
-    ticketAcceptRoleId: config?.ticketAcceptRoleId ?? process.env.TICKET_ACCEPT_ROLE_ID ?? null,
+    ticketAcceptRoleId: primaryAccept,
+    ticketAcceptRoleIds: acceptRoleIds,
   };
 }
 
@@ -300,22 +305,36 @@ async function startAccept(interaction, ticketId) {
     data: { status: 'ACCEPTED', closedAt: new Date(), closedById: interaction.user.id },
   });
 
-  // Assign role
+  // Assign roles (primary + optional secondary)
   const warnings = [];
-  if (config.ticketAcceptRoleId) {
+  if (config.ticketAcceptRoleIds.length > 0) {
     const member = await interaction.guild.members.fetch(ticket.applicantId).catch(() => null);
-    const role = interaction.guild.roles.cache.get(config.ticketAcceptRoleId);
-    if (member && role) {
-      const botTop = interaction.guild.members.me.roles.highest;
-      if (botTop.comparePositionTo(role) > 0 && !role.managed) {
-        await member.roles.add(role).catch((e) => warnings.push(`Échec attribution rôle : ${e.message}`));
-      } else {
-        warnings.push(`Le rôle ${role} est au-dessus du bot dans la hiérarchie, attribution impossible.`);
-      }
-    } else if (!member) {
+    if (!member) {
       warnings.push('Membre introuvable sur le serveur.');
     } else {
-      warnings.push('Rôle d\'acceptation introuvable.');
+      const botTop = interaction.guild.members.me.roles.highest;
+      const rolesToAdd = [];
+      for (const roleId of config.ticketAcceptRoleIds) {
+        const role = interaction.guild.roles.cache.get(roleId);
+        if (!role) {
+          warnings.push(`Rôle \`${roleId}\` introuvable.`);
+          continue;
+        }
+        if (role.managed) {
+          warnings.push(`${role} est géré par une intégration externe.`);
+          continue;
+        }
+        if (botTop.comparePositionTo(role) <= 0) {
+          warnings.push(`${role} est au-dessus du bot — attribution impossible.`);
+          continue;
+        }
+        rolesToAdd.push(role);
+      }
+      if (rolesToAdd.length > 0) {
+        await member.roles.add(rolesToAdd, 'Candidature acceptée').catch((e) =>
+          warnings.push(`Échec attribution rôles : ${e.message}`),
+        );
+      }
     }
   }
 
