@@ -15,8 +15,17 @@ for (const key of requiredEnv) {
 }
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
-  partials: [Partials.GuildMember],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildModeration,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildEmojisAndStickers,
+    GatewayIntentBits.GuildInvites,
+    GatewayIntentBits.MessageContent,
+  ],
+  partials: [Partials.GuildMember, Partials.Message, Partials.Channel, Partials.User],
 });
 
 client.commands = new Collection();

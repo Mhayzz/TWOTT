@@ -1,5 +1,6 @@
 import { Events, ActivityType } from 'discord.js';
 import { startStatusUpdater } from '../jobs/statusUpdater.js';
+import { setupLogging } from '../logs/index.js';
 
 export default {
   name: Events.ClientReady,
@@ -11,5 +12,6 @@ export default {
       status: 'online',
     });
     startStatusUpdater(client);
+    setupLogging(client);
   },
 };
