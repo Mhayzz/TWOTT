@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import prisma from '../lib/prisma.js';
 import { errorEmbed, baseEmbed, COLORS } from '../lib/embeds.js';
+import { applyAutoRoles } from '../lib/roles.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -32,7 +33,7 @@ export default {
       create: { discordId, mcUsername, className, rank: 'Recrue' },
     });
 
-    await applyRoles(interaction, member);
+    await applyAutoRoles(interaction.guild, member);
 
     await interaction.reply({
       embeds: [
@@ -48,22 +49,3 @@ export default {
     });
   },
 };
-
-async function applyRoles(interaction, member) {
-  try {
-    const config = await prisma.guildConfig.findUnique({ where: { guildId: interaction.guildId } });
-    if (!config) return;
-    const guildMember = await interaction.guild.members.fetch(member.discordId);
-    const toAdd = [];
-    if (member.className && config.classRoleMap?.[member.className]) {
-      toAdd.push(config.classRoleMap[member.className]);
-    }
-    if (config.rankRoleMap?.[member.rank]) {
-      toAdd.push(config.rankRoleMap[member.rank]);
-    }
-    if (toAdd.length) await guildMember.roles.add(toAdd).catch(() => {});
-  } catch (err) {
-    console.warn('Auto-rôles: échec', err.message);
-  }
-}
-

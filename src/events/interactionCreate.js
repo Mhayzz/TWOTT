@@ -1,5 +1,6 @@
 import { Events, MessageFlags } from 'discord.js';
 import { handleRaidButton } from '../commands/raid.js';
+import { handleAdminInteraction } from '../admin/handlers.js';
 import { errorEmbed } from '../lib/embeds.js';
 
 export default {
@@ -13,7 +14,15 @@ export default {
         return;
       }
 
-      if (interaction.isButton() && interaction.customId.startsWith('raid:')) {
+      const id = interaction.customId;
+      if (!id) return;
+
+      if (id.startsWith('admin:')) {
+        await handleAdminInteraction(interaction);
+        return;
+      }
+
+      if (id.startsWith('raid:') && interaction.isButton()) {
         await handleRaidButton(interaction);
         return;
       }
