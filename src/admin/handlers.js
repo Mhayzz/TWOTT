@@ -108,16 +108,16 @@ async function openRecruitModal(interaction, userId) {
     .setStyle(TextInputStyle.Short)
     .setRequired(true)
     .setMinLength(3)
-    .setMaxLength(32)
-    .setValue(existing?.mcUsername ?? '');
+    .setMaxLength(32);
+  if (existing?.mcUsername) pseudo.setValue(existing.mcUsername);
   const classe = new TextInputBuilder()
     .setCustomId('class_name')
     .setLabel('Classe (optionnel)')
     .setPlaceholder('Ex: Bretteur')
     .setStyle(TextInputStyle.Short)
     .setRequired(false)
-    .setMaxLength(40)
-    .setValue(existing?.className ?? '');
+    .setMaxLength(40);
+  if (existing?.className) classe.setValue(existing.className);
   modal.addComponents(
     new ActionRowBuilder().addComponents(pseudo),
     new ActionRowBuilder().addComponents(classe),
@@ -215,8 +215,8 @@ async function openClassModal(interaction, userId) {
     .setPlaceholder('Ex: Mage, Tank, Bretteur…')
     .setStyle(TextInputStyle.Short)
     .setRequired(false)
-    .setMaxLength(40)
-    .setValue(existing.className ?? '');
+    .setMaxLength(40);
+  if (existing.className) classe.setValue(existing.className);
   modal.addComponents(new ActionRowBuilder().addComponents(classe));
   await interaction.showModal(modal);
 }
