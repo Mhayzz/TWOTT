@@ -27,7 +27,7 @@ function buildReglementEmbed() {
         '**6. Confidentialité** — Pas de partage d\'infos personnelles d\'autres membres.',
         '',
         'En cliquant sur **✅ J\'accepte le règlement**, tu confirmes avoir lu et accepté ces règles.',
-        'Tu recevras alors le rôle **Visiteur** et auras accès au reste du serveur.',
+        'Tu recevras alors le rôle **Prisonnier de l\'Aincrad** et auras accès au reste du serveur.',
       ].join('\n'),
     )
     .setFooter({ text: 'TWOTT • Règlement' });
@@ -52,7 +52,7 @@ export async function handleReglementButton(interaction) {
 
   if (!role) {
     await interaction.reply({
-      embeds: [errorEmbed('Configuration manquante', 'Rôle visiteur introuvable. Contacte un admin.')],
+      embeds: [errorEmbed('Configuration manquante', 'Rôle introuvable. Contacte un admin.')],
       flags: MessageFlags.Ephemeral,
     });
     return;
