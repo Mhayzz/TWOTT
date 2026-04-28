@@ -1,6 +1,7 @@
 import { Events, MessageFlags } from 'discord.js';
 import { errorEmbed } from '../lib/embeds.js';
 import { handleTicketInteraction } from '../tickets/handlers.js';
+import { handleReglementButton } from '../commands/reglement.js';
 
 export default {
   name: Events.InteractionCreate,
@@ -18,6 +19,11 @@ export default {
 
       if (id.startsWith('ticket:')) {
         await handleTicketInteraction(interaction);
+        return;
+      }
+
+      if (id.startsWith('reglement:')) {
+        await handleReglementButton(interaction);
         return;
       }
     } catch (err) {
