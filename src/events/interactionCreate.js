@@ -1,6 +1,4 @@
 import { Events, MessageFlags } from 'discord.js';
-import { handleRaidButton } from '../commands/raid.js';
-import { handleAdminInteraction } from '../admin/handlers.js';
 import { errorEmbed } from '../lib/embeds.js';
 
 export default {
@@ -11,20 +9,6 @@ export default {
         const command = client.commands.get(interaction.commandName);
         if (!command) return;
         await command.execute(interaction, client);
-        return;
-      }
-
-      const id = interaction.customId;
-      if (!id) return;
-
-      if (id.startsWith('admin:')) {
-        await handleAdminInteraction(interaction);
-        return;
-      }
-
-      if (id.startsWith('raid:') && interaction.isButton()) {
-        await handleRaidButton(interaction);
-        return;
       }
     } catch (err) {
       console.error('Erreur interaction:', err);

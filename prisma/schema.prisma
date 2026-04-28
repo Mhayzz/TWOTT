@@ -7,61 +7,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Member {
-  id          String   @id @default(cuid())
-  discordId   String   @unique
-  mcUsername  String
-  className   String?
-  rank        String   @default("Recrue")
-  joinedAt    DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  notes       String?
-
-  raidParticipations RaidParticipant[]
-
-  @@index([mcUsername])
-}
-
-model Raid {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  location    String?
-  scheduledAt DateTime
-  maxPlayers  Int?
-  channelId   String
-  messageId   String?
-  guildId     String
-  createdById String
-  createdAt   DateTime @default(now())
-  reminderSent Boolean @default(false)
-  cancelled   Boolean  @default(false)
-
-  participants RaidParticipant[]
-
-  @@index([scheduledAt])
-  @@index([guildId])
-}
-
-model RaidParticipant {
-  id        String   @id @default(cuid())
-  raidId    String
-  memberId  String
-  status    String   // PRESENT | ABSENT | MAYBE
-  updatedAt DateTime @updatedAt
-
-  raid    Raid   @relation(fields: [raidId], references: [id], onDelete: Cascade)
-  member  Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
-
-  @@unique([raidId, memberId])
-}
-
 model GuildConfig {
-  guildId            String  @id
-  statusChannelId    String?
-  statusMessageId    String?
-  raidAnnounceRoleId String?
-  classRoleMap       Json?   // { "Bretteur": "roleId", ... }
-  rankRoleMap        Json?   // { "Recrue": "roleId", ... }
-  updatedAt          DateTime @updatedAt
+  guildId         String   @id
+  ipChannelId     String?
+  statusChannelId String?
+  updatedAt       DateTime @updatedAt
 }

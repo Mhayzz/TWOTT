@@ -15,11 +15,7 @@ for (const key of requiredEnv) {
 }
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages,
-  ],
+  intents: [GatewayIntentBits.Guilds],
   partials: [Partials.GuildMember],
 });
 
