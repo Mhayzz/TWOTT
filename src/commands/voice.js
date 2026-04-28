@@ -88,9 +88,17 @@ async function doStats(interaction) {
   await interaction.editReply({ embeds: [embed] });
 }
 
+const RANK_PREFIX = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+
+function progressBar(value, max, length = 18) {
+  if (max <= 0) return '░'.repeat(length);
+  const filled = Math.max(1, Math.round((value / max) * length));
+  return '█'.repeat(Math.min(filled, length)) + '░'.repeat(Math.max(0, length - filled));
+}
+
 async function doTop(interaction) {
   await interaction.deferReply();
-  const period = interaction.options.getString('periode') ?? '30d';
+  const period = interaction.options.getString('periode') ?? 'all';
   const since = periodSince(period);
 
   const where = { guildId: interaction.guildId };
@@ -111,16 +119,34 @@ async function doTop(interaction) {
     return;
   }
 
-  const periodLabel = { '7d': '7 jours', '30d': '30 jours', all: 'tout le temps' }[period] ?? period;
-  const medals = ['🥇', '🥈', '🥉'];
+  const totalAgg = await prisma.voiceSession.aggregate({
+    where,
+    _sum: { durationSec: true },
+  });
+  const distinctUsers = await prisma.voiceSession.findMany({
+    where,
+    select: { userId: true },
+    distinct: ['userId'],
+  });
+
+  const periodLabel = { '7d': '7 derniers jours', '30d': '30 derniers jours', all: 'Tout le temps' }[period] ?? period;
+  const maxSec = top[0]._sum.durationSec ?? 1;
 
   const lines = top.map((row, i) => {
-    const prefix = medals[i] ?? `**${i + 1}.**`;
-    return `${prefix} <@${row.userId}> — **${formatDuration(row._sum.durationSec ?? 0)}**`;
+    const seconds = row._sum.durationSec ?? 0;
+    const bar = progressBar(seconds, maxSec);
+    const pct = Math.round((seconds / maxSec) * 100);
+    return `${RANK_PREFIX[i]} <@${row.userId}>\n\`${bar}\` **${formatDuration(seconds)}** · ${pct}%`;
   });
 
   const embed = baseEmbed(COLORS.PRIMARY)
-    .setTitle(`🎙️ Top vocal (${periodLabel})`)
-    .setDescription(lines.join('\n'));
+    .setTitle('🏆 Top Vocal — The Wolves Of The Trinity')
+    .setDescription([`**Période :** ${periodLabel}`, '', lines.join('\n\n')].join('\n'))
+    .addFields(
+      { name: '⏱️ Temps total guilde', value: formatDuration(totalAgg._sum.durationSec ?? 0), inline: true },
+      { name: '👥 Membres trackés', value: String(distinctUsers.length), inline: true },
+    )
+    .setFooter({ text: 'TWOTT • Voice Tracker' });
+
   await interaction.editReply({ embeds: [embed] });
 }
