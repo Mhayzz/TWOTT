@@ -1,6 +1,6 @@
 import prisma from './prisma.js';
 
-export const RANKS = ['Recrue', 'Membre', 'Vétéran', 'Officier', 'Chef'];
+export const RANKS = ['Recrue', 'Aventurier', 'Vétéran', 'Cartographe', 'Stratège', 'Co-Guild Master', 'Guild Master'];
 
 export function nextRank(current) {
   const i = RANKS.indexOf(current);
