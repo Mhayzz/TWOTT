@@ -3,6 +3,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   UserSelectMenuBuilder,
+  StringSelectMenuBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -10,7 +11,7 @@ import {
   MessageFlags,
 } from 'discord.js';
 import prisma from '../lib/prisma.js';
-import { applyAutoRoles, RANKS, nextRank, previousRank, summarizeRolesResult } from '../lib/roles.js';
+import { applyAutoRoles, RANKS, summarizeRolesResult } from '../lib/roles.js';
 import { baseEmbed, successEmbed, errorEmbed, infoEmbed, COLORS } from '../lib/embeds.js';
 
 const EPHEMERAL = { flags: MessageFlags.Ephemeral };
@@ -33,8 +34,7 @@ export async function handleAdminInteraction(interaction) {
   // Step 1: top-level button on the panel
   if (interaction.isButton()) {
     if (id === 'admin:recruit') return startUserSelect(interaction, 'recruit', 'Choisis le membre Discord à ajouter à la guilde.');
-    if (id === 'admin:promote') return startUserSelect(interaction, 'promote', 'Choisis le membre à promouvoir.');
-    if (id === 'admin:demote')  return startUserSelect(interaction, 'demote', 'Choisis le membre à rétrograder.');
+    if (id === 'admin:setrank') return startUserSelect(interaction, 'setrank', 'Choisis le membre dont tu veux changer le grade.');
     if (id === 'admin:setclass')return startUserSelect(interaction, 'setclass', 'Choisis le membre dont tu veux changer la classe.');
     if (id === 'admin:remove')  return startUserSelect(interaction, 'remove', 'Choisis le membre à retirer de la guilde.');
     if (id === 'admin:list')    return showList(interaction);
@@ -43,15 +43,20 @@ export async function handleAdminInteraction(interaction) {
     if (id.startsWith('admin:remove:cancel'))   return interaction.update({ embeds: [infoEmbed('Annulé', 'Aucune modification.')], components: [] });
   }
 
-  // Step 2: user picked from a UserSelect menu
+  // Step 2a: user picked from a UserSelect menu
   if (interaction.isUserSelectMenu()) {
     const action = id.split(':')[2]; // admin:user:<action>
     const userId = interaction.values[0];
     if (action === 'recruit')  return openRecruitModal(interaction, userId);
-    if (action === 'promote')  return doPromote(interaction, userId);
-    if (action === 'demote')   return doDemote(interaction, userId);
+    if (action === 'setrank')  return showRankPicker(interaction, userId);
     if (action === 'setclass') return openClassModal(interaction, userId);
     if (action === 'remove')   return askRemoveConfirmation(interaction, userId);
+  }
+
+  // Step 2b: rank picked from the StringSelect menu
+  if (interaction.isStringSelectMenu()) {
+    const parts = id.split(':'); // admin:rank:<userId>
+    if (parts[1] === 'rank') return applySetRank(interaction, parts[2], interaction.values[0]);
   }
 
   // Step 3: modal submitted
@@ -85,8 +90,7 @@ async function startUserSelect(interaction, action, prompt) {
 function titleFor(action) {
   return {
     recruit: 'Ajouter une recrue',
-    promote: 'Promouvoir',
-    demote: 'Rétrograder',
+    setrank: 'Changer le grade',
     setclass: 'Définir la classe',
     remove: 'Retirer de la guilde',
   }[action] ?? action;
@@ -159,45 +163,86 @@ async function submitRecruit(interaction, userId) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────────
-// Promote / Demote
+// Set rank (unified promote/demote)
 // ────────────────────────────────────────────────────────────────────────────────
 
-async function doPromote(interaction, userId) {
+const RANK_EMOJIS = {
+  'Recrue': '🌱',
+  'Aventurier': '🗡️',
+  'Vétéran': '🛡️',
+  'Cartographe': '🗺️',
+  'Stratège': '🎯',
+  'Co-Guild Master': '⚜️',
+  'Guild Master': '👑',
+};
+
+async function showRankPicker(interaction, userId) {
   const member = await prisma.member.findUnique({ where: { discordId: userId } });
   if (!member) return notRegisteredReply(interaction, userId);
-  const next = nextRank(member.rank);
-  if (!next) {
-    await interaction.update({
-      embeds: [errorEmbed('Rang max', `<@${userId}> est déjà **${member.rank}**, impossible de promouvoir.`)],
-      components: [],
-    });
-    return;
-  }
-  const updated = await prisma.member.update({ where: { discordId: userId }, data: { rank: next } });
-  const rolesResult = await applyAutoRoles(interaction.guild, updated);
-  const summary = summarizeRolesResult(rolesResult);
+
+  const options = RANKS.map((rank) => ({
+    label: rank,
+    value: rank,
+    emoji: RANK_EMOJIS[rank],
+    description: rank === member.rank ? 'Grade actuel' : undefined,
+    default: rank === member.rank,
+  }));
+
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(`admin:rank:${userId}`)
+    .setPlaceholder('Choisir le nouveau grade…')
+    .addOptions(options);
+
   await interaction.update({
-    embeds: [successEmbed('⬆️ Promotion', `<@${userId}> : **${member.rank}** → **${next}**` + (summary ? `\n\n${summary}` : ''))],
-    components: [],
+    embeds: [
+      baseEmbed(COLORS.PRIMARY)
+        .setTitle('🎖️ Changer le grade')
+        .setDescription(
+          `Membre : <@${userId}> (\`${member.mcUsername}\`)\n` +
+            `Grade actuel : **${member.rank}** ${RANK_EMOJIS[member.rank] ?? ''}\n\n` +
+            `Sélectionne le nouveau grade dans la liste ci-dessous.`,
+        ),
+    ],
+    components: [new ActionRowBuilder().addComponents(menu)],
   });
 }
 
-async function doDemote(interaction, userId) {
+async function applySetRank(interaction, userId, newRank) {
   const member = await prisma.member.findUnique({ where: { discordId: userId } });
   if (!member) return notRegisteredReply(interaction, userId);
-  const prev = previousRank(member.rank);
-  if (!prev) {
+
+  if (!RANKS.includes(newRank)) {
     await interaction.update({
-      embeds: [errorEmbed('Rang min', `<@${userId}> est déjà **${member.rank}**, impossible de rétrograder.`)],
+      embeds: [errorEmbed('Grade invalide', `\`${newRank}\` n'est pas un grade valide.`)],
       components: [],
     });
     return;
   }
-  const updated = await prisma.member.update({ where: { discordId: userId }, data: { rank: prev } });
+
+  if (newRank === member.rank) {
+    await interaction.update({
+      embeds: [infoEmbed('Aucun changement', `<@${userId}> est déjà **${member.rank}**.`)],
+      components: [],
+    });
+    return;
+  }
+
+  const updated = await prisma.member.update({ where: { discordId: userId }, data: { rank: newRank } });
   const rolesResult = await applyAutoRoles(interaction.guild, updated);
   const summary = summarizeRolesResult(rolesResult);
+
+  const oldIdx = RANKS.indexOf(member.rank);
+  const newIdx = RANKS.indexOf(newRank);
+  const arrow = newIdx > oldIdx ? '⬆️ Promotion' : '⬇️ Rétrogradation';
+
   await interaction.update({
-    embeds: [successEmbed('⬇️ Rétrogradation', `<@${userId}> : **${member.rank}** → **${prev}**` + (summary ? `\n\n${summary}` : ''))],
+    embeds: [
+      successEmbed(
+        `🎖️ ${arrow}`,
+        `<@${userId}> : **${member.rank}** ${RANK_EMOJIS[member.rank] ?? ''} → **${newRank}** ${RANK_EMOJIS[newRank] ?? ''}` +
+          (summary ? `\n\n${summary}` : ''),
+      ),
+    ],
     components: [],
   });
 }

@@ -10,8 +10,7 @@ export function buildPanelEmbed() {
         '',
         '**Membres**',
         '➕ `Ajouter une recrue` — enregistre un membre Discord (pseudo MC + classe)',
-        '⬆️ `Promouvoir` — fait monter le rang (Recrue → Aventurier → Vétéran → Cartographe → Stratège → Co-GM → GM)',
-        '⬇️ `Rétrograder` — fait descendre le rang',
+        '🎖️ `Changer le grade` — choisis un membre puis attribue son nouveau grade',
         '🛡️ `Définir la classe` — modifie la classe d\'un membre',
         '🚪 `Retirer de la guilde` — supprime un membre (avec confirmation)',
         '',
@@ -26,12 +25,11 @@ export function buildPanelEmbed() {
 export function buildPanelButtons() {
   const row1 = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('admin:recruit').setLabel('Ajouter une recrue').setEmoji('➕').setStyle(ButtonStyle.Success),
-    new ButtonBuilder().setCustomId('admin:promote').setLabel('Promouvoir').setEmoji('⬆️').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId('admin:demote').setLabel('Rétrograder').setEmoji('⬇️').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('admin:setrank').setLabel('Changer le grade').setEmoji('🎖️').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId('admin:setclass').setLabel('Définir la classe').setEmoji('🛡️').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('admin:remove').setLabel('Retirer').setEmoji('🚪').setStyle(ButtonStyle.Danger),
   );
   const row2 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('admin:remove').setLabel('Retirer').setEmoji('🚪').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId('admin:list').setLabel('Liste').setEmoji('📜').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('admin:stats').setLabel('Stats').setEmoji('📊').setStyle(ButtonStyle.Secondary),
   );
