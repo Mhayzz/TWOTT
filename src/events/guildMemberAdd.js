@@ -3,6 +3,7 @@ import { baseEmbed, COLORS } from '../lib/embeds.js';
 
 const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID ?? null;
 const RULES_CHANNEL_ID = process.env.REGLEMENT_CHANNEL_ID ?? '1418179782553899131';
+const WELCOME_BANNER_URL = process.env.WELCOME_BANNER_URL ?? null;
 
 export default {
   name: Events.GuildMemberAdd,
@@ -19,21 +20,23 @@ export default {
     const embed = baseEmbed(COLORS.SAO_BLUE)
       .setAuthor({ name: member.user.tag, iconURL: member.user.displayAvatarURL() })
       .setThumbnail(member.user.displayAvatarURL({ size: 256 }))
-      .setTitle('⚔️ « New player has awakened in Aincrad »')
+      .setTitle(`🐺 Bienvenue dans la meute, ${member.user.username} !`)
       .setDescription(
         [
-          `Bienvenue dans **The Wolves Of The Trinity**, <@${member.id}>.`,
+          `Hey <@${member.id}>, bienvenue sur **The Wolves Of The Trinity** !`,
           '',
-          `> *"Vous ne pouvez plus vous déconnecter. La seule façon de partir est de battre le boss du dernier étage."*`,
+          `📜 Pense à lire le règlement dans <#${RULES_CHANNEL_ID}> pour débloquer l'accès au reste du serveur.`,
           '',
-          `📜 Lis le règlement dans <#${RULES_CHANNEL_ID}> pour accéder au reste du serveur.`,
+          `Bonne aventure dans **l'Aincrad**, et n'hésite pas à te présenter à la meute. ⚔️`,
         ].join('\n'),
       )
       .addFields(
-        { name: 'Prisonnier n°', value: `**${memberCount}**`, inline: true },
+        { name: 'Membre n°', value: `**${memberCount}**`, inline: true },
         { name: 'Compte créé', value: `<t:${accountCreated}:R>`, inline: true },
       )
-      .setFooter({ text: 'TWOTT • SAO Chronicles' });
+      .setFooter({ text: 'The Wolves Of The Trinity' });
+
+    if (WELCOME_BANNER_URL) embed.setImage(WELCOME_BANNER_URL);
 
     await channel.send({
       content: `<@${member.id}>`,
