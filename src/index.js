@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Client, Collection, GatewayIntentBits, Partials } from 'discord.js';
+import { Client, Collection, GatewayIntentBits, Partials, Options } from 'discord.js';
 import { readdirSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -26,6 +26,19 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
   ],
   partials: [Partials.GuildMember, Partials.Message, Partials.Channel, Partials.User],
+  // Keep up to 1000 messages per channel in cache so deletion logs have content.
+  makeCache: Options.cacheWithLimits({
+    ...Options.DefaultMakeCacheSettings,
+    MessageManager: 1000,
+  }),
+  // Don't auto-sweep messages — keep them as long as memory allows.
+  sweepers: {
+    ...Options.DefaultSweeperSettings,
+    messages: {
+      interval: 3600,           // every hour
+      lifetime: 24 * 60 * 60,   // remove cached messages older than 24h
+    },
+  },
 });
 
 client.commands = new Collection();
