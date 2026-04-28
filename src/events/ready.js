@@ -7,7 +7,7 @@ export default {
   async execute(client) {
     console.log(`Connecté en tant que ${client.user.tag}`);
     client.user.setPresence({
-      activities: [{ name: 'SAO Chronicles', type: ActivityType.Playing }],
+      activities: [{ name: '⚔️│ᴘʟᴀʏ.ꜱᴀᴏᴄʜʀᴏɴɪᴄʟᴇꜱ.ɴᴇᴛ', type: ActivityType.Playing }],
       status: 'online',
     });
     startStatusUpdater(client);
