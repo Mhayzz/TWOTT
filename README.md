@@ -19,7 +19,7 @@ Bot Discord pour la guilde **The Wolves Of The Trinity** sur le serveur Minecraf
 npm install
 cp .env.example .env
 # Remplir DISCORD_TOKEN, CLIENT_ID, GUILD_ID, DATABASE_URL
-npm run db:migrate
+npm run db:push
 npm run deploy:commands
 npm start
 ```
@@ -36,7 +36,9 @@ npm start
    - `MC_SERVER_PORT=25565`
    - `STATUS_UPDATE_INTERVAL_MINUTES=5`
    - `RAID_REMINDER_LEAD_MINUTES=30`
-4. Le `startCommand` (cf. `railway.json`) applique les migrations Prisma, redéploie les slash commands et lance le bot.
+4. Le `startCommand` (cf. `railway.json`) synchronise le schéma Prisma (`db push`), redéploie les slash commands et lance le bot.
+
+> **Important** : Dans Railway, pour que le service du bot voie la base, il faut **lier la variable `DATABASE_URL`** à celle du plugin Postgres (Variables → Add Variable Reference → choisir le service Postgres → `DATABASE_URL`). Sans ça, Prisma tombe sur `localhost:5432` et le déploiement crashe.
 
 ## Permissions Discord requises
 
