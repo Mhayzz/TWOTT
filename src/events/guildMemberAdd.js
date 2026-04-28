@@ -3,7 +3,7 @@ import { baseEmbed, COLORS } from '../lib/embeds.js';
 
 const WELCOME_CHANNEL_ID = process.env.WELCOME_CHANNEL_ID ?? null;
 const RULES_CHANNEL_ID = process.env.REGLEMENT_CHANNEL_ID ?? '1418179782553899131';
-const WELCOME_BANNER_URL = process.env.WELCOME_BANNER_URL ?? null;
+const WELCOME_BANNER_URL = process.env.WELCOME_BANNER_URL ?? 'https://i.imgur.com/i7Z4Sgl.png';
 
 export default {
   name: Events.GuildMemberAdd,
