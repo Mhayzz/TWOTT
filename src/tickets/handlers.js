@@ -101,7 +101,7 @@ async function openApplicationModal(interaction) {
 
   const motivation = new TextInputBuilder()
     .setCustomId('motivation')
-    .setLabel('Pourquoi rejoindre The Wolves Of The Trinity ?')
+    .setLabel('Pourquoi rejoindre TWOTT ?')
     .setPlaceholder('Décris ta motivation, ce que tu cherches dans une guilde…')
     .setStyle(TextInputStyle.Paragraph)
     .setRequired(true)
