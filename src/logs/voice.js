@@ -1,5 +1,5 @@
-import { Events } from 'discord.js';
-import { logEmbed, postLog, LOG_COLORS } from './logger.js';
+import { Events, AuditLogEvent } from 'discord.js';
+import { logEmbed, postLog, findAuditEntry, addExecutor, LOG_COLORS } from './logger.js';
 
 export function registerVoiceLogs(client) {
   client.on(Events.VoiceStateUpdate, async (oldS, newS) => {
@@ -13,7 +13,7 @@ export function registerVoiceLogs(client) {
       const embed = logEmbed(LOG_COLORS.VOICE_JOIN)
         .setAuthor(author)
         .setTitle('🔊 Connexion vocale')
-        .setDescription(`<@${member.id}> a rejoint <#${newS.channelId}>`);
+        .setDescription(`Cible : <@${member.id}> a rejoint <#${newS.channelId}>`);
       await postLog(client, embed);
       return;
     }
@@ -23,7 +23,7 @@ export function registerVoiceLogs(client) {
       const embed = logEmbed(LOG_COLORS.VOICE_LEAVE)
         .setAuthor(author)
         .setTitle('🔇 Déconnexion vocale')
-        .setDescription(`<@${member.id}> a quitté <#${oldS.channelId}>`);
+        .setDescription(`Cible : <@${member.id}> a quitté <#${oldS.channelId}>`);
       await postLog(client, embed);
       return;
     }
@@ -33,7 +33,7 @@ export function registerVoiceLogs(client) {
       const embed = logEmbed(LOG_COLORS.VOICE_MOVE)
         .setAuthor(author)
         .setTitle('↔️ Changement de salon vocal')
-        .setDescription(`<@${member.id}> : <#${oldS.channelId}> → <#${newS.channelId}>`);
+        .setDescription(`Cible : <@${member.id}> : <#${oldS.channelId}> → <#${newS.channelId}>`);
       await postLog(client, embed);
       return;
     }
@@ -44,11 +44,13 @@ export function registerVoiceLogs(client) {
       if (oldS.serverMute !== newS.serverMute) changes.push(`Server mute : ${oldS.serverMute} → ${newS.serverMute}`);
       if (oldS.serverDeaf !== newS.serverDeaf) changes.push(`Server deaf : ${oldS.serverDeaf} → ${newS.serverDeaf}`);
       if (changes.length) {
+        const entry = await findAuditEntry(newS.guild, AuditLogEvent.MemberUpdate, member.id);
         const embed = logEmbed(LOG_COLORS.UPDATE)
           .setAuthor(author)
           .setTitle('🎙️ État vocal modifié')
-          .setDescription(`<@${member.id}> dans <#${newS.channelId}>`)
+          .setDescription(`Cible : <@${member.id}> dans <#${newS.channelId}>`)
           .addFields({ name: 'Changements', value: changes.join('\n') });
+        addExecutor(embed, entry?.executor);
         await postLog(client, embed);
       }
     }

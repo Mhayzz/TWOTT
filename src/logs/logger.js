@@ -39,8 +39,15 @@ export async function postLog(client, embed) {
 export async function findAuditEntry(guild, type, targetId, withinMs = 5000) {
   try {
     const audits = await guild.fetchAuditLogs({ type, limit: 5 });
-    return audits.entries.find((e) => e.targetId === targetId && Date.now() - e.createdTimestamp < withinMs) ?? null;
+    return audits.entries.find((e) => (!targetId || e.targetId === targetId) && Date.now() - e.createdTimestamp < withinMs) ?? null;
   } catch {
     return null;
   }
+}
+
+export function addExecutor(embed, executor, label = 'Par') {
+  if (executor) {
+    embed.addFields({ name: label, value: `<@${executor.id}>`, inline: true });
+  }
+  return embed;
 }

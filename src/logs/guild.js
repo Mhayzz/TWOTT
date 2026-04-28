@@ -1,5 +1,5 @@
-import { Events } from 'discord.js';
-import { logEmbed, postLog, LOG_COLORS } from './logger.js';
+import { Events, AuditLogEvent } from 'discord.js';
+import { logEmbed, postLog, findAuditEntry, addExecutor, LOG_COLORS } from './logger.js';
 
 export function registerGuildLogs(client) {
   client.on(Events.GuildUpdate, async (oldG, newG) => {
@@ -11,7 +11,9 @@ export function registerGuildLogs(client) {
     if (oldG.verificationLevel !== newG.verificationLevel) fields.push({ name: 'Vérification', value: `${oldG.verificationLevel} → ${newG.verificationLevel}` });
     if (fields.length === 0) return;
 
-    const embed = logEmbed(LOG_COLORS.UPDATE).setTitle('🛠️ Serveur modifié').addFields(fields);
+    const entry = await findAuditEntry(newG, AuditLogEvent.GuildUpdate, newG.id);
+    const embed = logEmbed(LOG_COLORS.UPDATE).setTitle('🛠️ Serveur modifié').setDescription(`Cible : ${newG.name}`).addFields(fields);
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
@@ -20,52 +22,64 @@ export function registerGuildLogs(client) {
       .setTitle('🔗 Invitation créée')
       .setDescription(`Code : \`${invite.code}\``)
       .addFields(
-        { name: 'Auteur', value: invite.inviter ? `<@${invite.inviter.id}>` : '—', inline: true },
         { name: 'Salon', value: invite.channel ? `<#${invite.channel.id}>` : '—', inline: true },
         { name: 'Max usages', value: String(invite.maxUses || '∞'), inline: true },
         { name: 'Expire', value: invite.expiresAt ? `<t:${Math.floor(invite.expiresAt.getTime() / 1000)}:R>` : 'jamais', inline: true },
       );
+    addExecutor(embed, invite.inviter, 'Créée par');
     await postLog(client, embed);
   });
 
   client.on(Events.InviteDelete, async (invite) => {
+    const entry = invite.guild ? await findAuditEntry(invite.guild, AuditLogEvent.InviteDelete, null) : null;
     const embed = logEmbed(LOG_COLORS.UPDATE)
       .setTitle('🔗 Invitation supprimée')
       .setDescription(`Code : \`${invite.code}\` (salon : <#${invite.channelId}>)`);
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
   client.on(Events.GuildEmojiCreate, async (emoji) => {
+    const entry = await findAuditEntry(emoji.guild, AuditLogEvent.EmojiCreate, emoji.id);
     const embed = logEmbed(LOG_COLORS.CREATE)
       .setTitle('😀 Emoji ajouté')
-      .setDescription(`${emoji} \`:${emoji.name}:\``)
+      .setDescription(`Cible : ${emoji} \`:${emoji.name}:\``)
       .setThumbnail(emoji.imageURL());
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
   client.on(Events.GuildEmojiDelete, async (emoji) => {
+    const entry = await findAuditEntry(emoji.guild, AuditLogEvent.EmojiDelete, emoji.id);
     const embed = logEmbed(LOG_COLORS.DELETE)
       .setTitle('😶 Emoji supprimé')
-      .setDescription(`\`:${emoji.name}:\``);
+      .setDescription(`Cible : \`:${emoji.name}:\``);
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
   client.on(Events.GuildEmojiUpdate, async (oldE, newE) => {
     if (oldE.name === newE.name) return;
+    const entry = await findAuditEntry(newE.guild, AuditLogEvent.EmojiUpdate, newE.id);
     const embed = logEmbed(LOG_COLORS.UPDATE)
       .setTitle('😶 Emoji renommé')
-      .setDescription(`\`:${oldE.name}:\` → \`:${newE.name}:\``)
+      .setDescription(`Cible : \`:${oldE.name}:\` → \`:${newE.name}:\``)
       .setThumbnail(newE.imageURL());
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
   client.on(Events.GuildStickerCreate, async (sticker) => {
-    const embed = logEmbed(LOG_COLORS.CREATE).setTitle('🏷️ Sticker ajouté').setDescription(`\`${sticker.name}\``);
+    const entry = await findAuditEntry(sticker.guild, AuditLogEvent.StickerCreate, sticker.id);
+    const embed = logEmbed(LOG_COLORS.CREATE).setTitle('🏷️ Sticker ajouté').setDescription(`Cible : \`${sticker.name}\``);
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
   client.on(Events.GuildStickerDelete, async (sticker) => {
-    const embed = logEmbed(LOG_COLORS.DELETE).setTitle('🏷️ Sticker supprimé').setDescription(`\`${sticker.name}\``);
+    const entry = await findAuditEntry(sticker.guild, AuditLogEvent.StickerDelete, sticker.id);
+    const embed = logEmbed(LOG_COLORS.DELETE).setTitle('🏷️ Sticker supprimé').setDescription(`Cible : \`${sticker.name}\``);
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 }

@@ -1,5 +1,5 @@
-import { Events, ChannelType } from 'discord.js';
-import { logEmbed, postLog, LOG_COLORS } from './logger.js';
+import { Events, ChannelType, AuditLogEvent } from 'discord.js';
+import { logEmbed, postLog, findAuditEntry, addExecutor, LOG_COLORS } from './logger.js';
 
 const TYPE_LABELS = {
   [ChannelType.GuildText]: 'textuel',
@@ -21,20 +21,24 @@ function typeLabel(t) {
 export function registerChannelLogs(client) {
   client.on(Events.ChannelCreate, async (channel) => {
     if (!channel.guild) return;
+    const entry = await findAuditEntry(channel.guild, AuditLogEvent.ChannelCreate, channel.id);
     const embed = logEmbed(LOG_COLORS.CREATE)
       .setTitle('📁 Salon créé')
-      .setDescription(`${channel} (${typeLabel(channel.type)})`)
+      .setDescription(`Cible : ${channel} (${typeLabel(channel.type)})`)
       .addFields({ name: 'ID', value: '`' + channel.id + '`', inline: true });
     if (channel.parent) embed.addFields({ name: 'Catégorie', value: channel.parent.name, inline: true });
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
   client.on(Events.ChannelDelete, async (channel) => {
     if (!channel.guild) return;
+    const entry = await findAuditEntry(channel.guild, AuditLogEvent.ChannelDelete, channel.id);
     const embed = logEmbed(LOG_COLORS.DELETE)
       .setTitle('🗑️ Salon supprimé')
-      .setDescription(`\`#${channel.name}\` (${typeLabel(channel.type)})`)
+      .setDescription(`Cible : \`#${channel.name}\` (${typeLabel(channel.type)})`)
       .addFields({ name: 'ID', value: '`' + channel.id + '`', inline: true });
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
@@ -57,25 +61,31 @@ export function registerChannelLogs(client) {
     }
     if (fields.length === 0) return;
 
+    const entry = await findAuditEntry(newCh.guild, AuditLogEvent.ChannelUpdate, newCh.id);
     const embed = logEmbed(LOG_COLORS.UPDATE)
       .setTitle('✏️ Salon modifié')
-      .setDescription(`${newCh}`)
+      .setDescription(`Cible : ${newCh}`)
       .addFields(fields);
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
   client.on(Events.ThreadCreate, async (thread) => {
+    const entry = await findAuditEntry(thread.guild, AuditLogEvent.ThreadCreate, thread.id);
     const embed = logEmbed(LOG_COLORS.CREATE)
       .setTitle('🧵 Fil créé')
-      .setDescription(`${thread} dans ${thread.parent}`)
+      .setDescription(`Cible : ${thread} dans ${thread.parent}`)
       .addFields({ name: 'Auteur', value: thread.ownerId ? `<@${thread.ownerId}>` : '—', inline: true });
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
   client.on(Events.ThreadDelete, async (thread) => {
+    const entry = await findAuditEntry(thread.guild, AuditLogEvent.ThreadDelete, thread.id);
     const embed = logEmbed(LOG_COLORS.DELETE)
       .setTitle('🧵 Fil supprimé')
-      .setDescription(`\`${thread.name}\` (était dans ${thread.parent ?? '?'})`);
+      .setDescription(`Cible : \`${thread.name}\` (était dans ${thread.parent ?? '?'})`);
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
@@ -85,7 +95,9 @@ export function registerChannelLogs(client) {
     if (oldT.archived !== newT.archived) fields.push({ name: 'Archivé', value: `${oldT.archived} → ${newT.archived}`, inline: true });
     if (oldT.locked !== newT.locked) fields.push({ name: 'Verrouillé', value: `${oldT.locked} → ${newT.locked}`, inline: true });
     if (fields.length === 0) return;
-    const embed = logEmbed(LOG_COLORS.UPDATE).setTitle('🧵 Fil modifié').setDescription(`${newT}`).addFields(fields);
+    const entry = await findAuditEntry(newT.guild, AuditLogEvent.ThreadUpdate, newT.id);
+    const embed = logEmbed(LOG_COLORS.UPDATE).setTitle('🧵 Fil modifié').setDescription(`Cible : ${newT}`).addFields(fields);
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 }

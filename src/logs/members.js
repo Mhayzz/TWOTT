@@ -1,5 +1,5 @@
 import { Events, AuditLogEvent } from 'discord.js';
-import { logEmbed, postLog, findAuditEntry, LOG_COLORS } from './logger.js';
+import { logEmbed, postLog, findAuditEntry, addExecutor, LOG_COLORS } from './logger.js';
 
 export function registerMemberLogs(client) {
   client.on(Events.GuildMemberAdd, async (member) => {
@@ -7,7 +7,7 @@ export function registerMemberLogs(client) {
     const embed = logEmbed(LOG_COLORS.JOIN)
       .setAuthor({ name: member.user.tag, iconURL: member.user.displayAvatarURL() })
       .setTitle('📥 Membre arrivé')
-      .setDescription(`<@${member.id}>`)
+      .setDescription(`Cible : <@${member.id}>`)
       .addFields(
         { name: 'Compte créé', value: `<t:${created}:R>`, inline: true },
         { name: 'ID', value: '`' + member.id + '`', inline: true },
@@ -20,12 +20,10 @@ export function registerMemberLogs(client) {
     const embed = logEmbed(kickEntry ? LOG_COLORS.KICK : LOG_COLORS.LEAVE)
       .setAuthor({ name: member.user.tag, iconURL: member.user.displayAvatarURL() })
       .setTitle(kickEntry ? '👢 Membre expulsé' : '📤 Membre parti')
-      .setDescription(`<@${member.id}>`);
+      .setDescription(`Cible : <@${member.id}>`);
     if (kickEntry) {
-      embed.addFields(
-        { name: 'Modérateur', value: `<@${kickEntry.executor.id}>`, inline: true },
-        { name: 'Raison', value: kickEntry.reason ?? '*aucune*', inline: false },
-      );
+      addExecutor(embed, kickEntry.executor);
+      embed.addFields({ name: 'Raison', value: kickEntry.reason ?? '*aucune*', inline: false });
     }
     embed.addFields({ name: 'ID', value: '`' + member.id + '`', inline: true });
     await postLog(client, embed);
@@ -37,11 +35,9 @@ export function registerMemberLogs(client) {
     const embed = logEmbed(LOG_COLORS.BAN)
       .setAuthor({ name: ban.user.tag, iconURL: ban.user.displayAvatarURL() })
       .setTitle('🔨 Membre banni')
-      .setDescription(`<@${ban.user.id}>`)
-      .addFields(
-        ...(entry ? [{ name: 'Modérateur', value: `<@${entry.executor.id}>`, inline: true }] : []),
-        { name: 'Raison', value: reason, inline: false },
-      );
+      .setDescription(`Cible : <@${ban.user.id}>`);
+    addExecutor(embed, entry?.executor);
+    embed.addFields({ name: 'Raison', value: reason, inline: false });
     await postLog(client, embed);
   });
 
@@ -50,8 +46,8 @@ export function registerMemberLogs(client) {
     const embed = logEmbed(LOG_COLORS.UNBAN)
       .setAuthor({ name: ban.user.tag, iconURL: ban.user.displayAvatarURL() })
       .setTitle('🕊️ Bannissement levé')
-      .setDescription(`<@${ban.user.id}>`)
-      .addFields(...(entry ? [{ name: 'Modérateur', value: `<@${entry.executor.id}>`, inline: true }] : []));
+      .setDescription(`Cible : <@${ban.user.id}>`);
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
@@ -62,25 +58,29 @@ export function registerMemberLogs(client) {
     const added = [...newRoles].filter((r) => !oldRoles.has(r));
     const removed = [...oldRoles].filter((r) => !newRoles.has(r));
     if (added.length || removed.length) {
+      const entry = await findAuditEntry(newM.guild, AuditLogEvent.MemberRoleUpdate, newM.id);
       const embed = logEmbed(added.length ? LOG_COLORS.ROLE_ADD : LOG_COLORS.ROLE_REMOVE)
         .setAuthor({ name: newM.user.tag, iconURL: newM.user.displayAvatarURL() })
         .setTitle('🎭 Rôles modifiés')
-        .setDescription(`<@${newM.id}>`);
+        .setDescription(`Cible : <@${newM.id}>`);
       if (added.length) embed.addFields({ name: 'Ajouté(s)', value: added.map((r) => `<@&${r}>`).join(', ') });
       if (removed.length) embed.addFields({ name: 'Retiré(s)', value: removed.map((r) => `<@&${r}>`).join(', ') });
+      addExecutor(embed, entry?.executor);
       await postLog(client, embed);
     }
 
     // Nickname
     if (oldM.nickname !== newM.nickname) {
+      const entry = await findAuditEntry(newM.guild, AuditLogEvent.MemberUpdate, newM.id);
       const embed = logEmbed(LOG_COLORS.UPDATE)
         .setAuthor({ name: newM.user.tag, iconURL: newM.user.displayAvatarURL() })
         .setTitle('✏️ Pseudo serveur modifié')
-        .setDescription(`<@${newM.id}>`)
+        .setDescription(`Cible : <@${newM.id}>`)
         .addFields(
           { name: 'Avant', value: oldM.nickname ?? '*aucun*', inline: true },
           { name: 'Après', value: newM.nickname ?? '*aucun*', inline: true },
         );
+      addExecutor(embed, entry?.executor);
       await postLog(client, embed);
     }
 
@@ -88,18 +88,23 @@ export function registerMemberLogs(client) {
     const oldTo = oldM.communicationDisabledUntilTimestamp;
     const newTo = newM.communicationDisabledUntilTimestamp;
     if (!oldTo && newTo) {
+      const entry = await findAuditEntry(newM.guild, AuditLogEvent.MemberUpdate, newM.id);
       const until = Math.floor(newTo / 1000);
       const embed = logEmbed(LOG_COLORS.UPDATE)
         .setAuthor({ name: newM.user.tag, iconURL: newM.user.displayAvatarURL() })
         .setTitle('🔇 Timeout appliqué')
-        .setDescription(`<@${newM.id}>`)
+        .setDescription(`Cible : <@${newM.id}>`)
         .addFields({ name: 'Jusqu\'à', value: `<t:${until}:F> (<t:${until}:R>)` });
+      addExecutor(embed, entry?.executor);
+      if (entry?.reason) embed.addFields({ name: 'Raison', value: entry.reason });
       await postLog(client, embed);
     } else if (oldTo && (!newTo || newTo < Date.now())) {
+      const entry = await findAuditEntry(newM.guild, AuditLogEvent.MemberUpdate, newM.id);
       const embed = logEmbed(LOG_COLORS.UPDATE)
         .setAuthor({ name: newM.user.tag, iconURL: newM.user.displayAvatarURL() })
         .setTitle('🔊 Timeout levé')
-        .setDescription(`<@${newM.id}>`);
+        .setDescription(`Cible : <@${newM.id}>`);
+      addExecutor(embed, entry?.executor);
       await postLog(client, embed);
     }
   });

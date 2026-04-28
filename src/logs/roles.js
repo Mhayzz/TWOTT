@@ -1,24 +1,28 @@
-import { Events } from 'discord.js';
-import { logEmbed, postLog, LOG_COLORS } from './logger.js';
+import { Events, AuditLogEvent } from 'discord.js';
+import { logEmbed, postLog, findAuditEntry, addExecutor, LOG_COLORS } from './logger.js';
 
 export function registerRoleLogs(client) {
   client.on(Events.GuildRoleCreate, async (role) => {
+    const entry = await findAuditEntry(role.guild, AuditLogEvent.RoleCreate, role.id);
     const embed = logEmbed(LOG_COLORS.CREATE)
       .setTitle('🎭 Rôle créé')
-      .setDescription(`${role}`)
+      .setDescription(`Cible : ${role}`)
       .addFields(
         { name: 'Nom', value: role.name, inline: true },
         { name: 'Couleur', value: role.hexColor, inline: true },
         { name: 'ID', value: '`' + role.id + '`', inline: true },
       );
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
   client.on(Events.GuildRoleDelete, async (role) => {
+    const entry = await findAuditEntry(role.guild, AuditLogEvent.RoleDelete, role.id);
     const embed = logEmbed(LOG_COLORS.DELETE)
       .setTitle('🎭 Rôle supprimé')
-      .setDescription(`\`${role.name}\``)
+      .setDescription(`Cible : \`${role.name}\``)
       .addFields({ name: 'ID', value: '`' + role.id + '`', inline: true });
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 
@@ -38,10 +42,12 @@ export function registerRoleLogs(client) {
     }
     if (fields.length === 0) return;
 
+    const entry = await findAuditEntry(newR.guild, AuditLogEvent.RoleUpdate, newR.id);
     const embed = logEmbed(LOG_COLORS.UPDATE)
       .setTitle('🎭 Rôle modifié')
-      .setDescription(`${newR}`)
+      .setDescription(`Cible : ${newR}`)
       .addFields(fields);
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 }

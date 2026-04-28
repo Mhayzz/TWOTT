@@ -1,5 +1,5 @@
-import { Events } from 'discord.js';
-import { logEmbed, postLog, LOG_COLORS } from './logger.js';
+import { Events, AuditLogEvent } from 'discord.js';
+import { logEmbed, postLog, findAuditEntry, addExecutor, LOG_COLORS } from './logger.js';
 
 function shorten(text, max = 1024) {
   if (!text) return '*vide*';
@@ -15,7 +15,7 @@ export function registerMessageLogs(client) {
       .setTitle('🗑️ Message supprimé')
       .setDescription(
         message.author
-          ? `Auteur : <@${message.author.id}> dans <#${message.channelId}>`
+          ? `Cible (auteur) : <@${message.author.id}> dans <#${message.channelId}>`
           : `Dans <#${message.channelId}> (auteur inconnu)`,
       );
 
@@ -29,6 +29,13 @@ export function registerMessageLogs(client) {
           value: [...message.attachments.values()].map((a) => `[${a.name}](${a.url})`).join('\n').slice(0, 1024),
         });
       }
+    }
+
+    // Discord audits message deletions by mods only (self-deletes are not logged)
+    if (message.author && !message.author.bot) {
+      const entry = await findAuditEntry(message.guild, AuditLogEvent.MessageDelete, message.author.id);
+      if (entry) addExecutor(embed, entry.executor, 'Supprimé par');
+      else embed.addFields({ name: 'Supprimé par', value: 'auteur lui-même', inline: true });
     }
 
     embed.addFields({ name: 'ID', value: '`' + message.id + '`', inline: true });
@@ -52,18 +59,21 @@ export function registerMessageLogs(client) {
 
     const embed = logEmbed(LOG_COLORS.MESSAGE_EDIT)
       .setTitle('✏️ Message édité')
-      .setDescription(`Auteur : <@${newMessage.author.id}> dans <#${newMessage.channelId}> — [Aller au message](${newMessage.url})`)
+      .setDescription(`Cible (auteur) : <@${newMessage.author.id}> dans <#${newMessage.channelId}> — [Aller au message](${newMessage.url})`)
       .addFields(
         { name: 'Avant', value: oldContent ? shorten(oldContent) : '*non disponible*' },
         { name: 'Après', value: shorten(newContent) },
       );
+    addExecutor(embed, newMessage.author, 'Édité par');
     await postLog(client, embed);
   });
 
   client.on(Events.MessageBulkDelete, async (messages, channel) => {
+    const entry = await findAuditEntry(channel.guild, AuditLogEvent.MessageBulkDelete, channel.id);
     const embed = logEmbed(LOG_COLORS.MESSAGE_DELETE)
       .setTitle('🧹 Suppression en masse')
-      .setDescription(`${messages.size} messages supprimés dans <#${channel.id}>`);
+      .setDescription(`Cible : <#${channel.id}> — ${messages.size} messages`);
+    addExecutor(embed, entry?.executor);
     await postLog(client, embed);
   });
 }
