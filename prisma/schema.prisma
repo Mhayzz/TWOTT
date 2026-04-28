@@ -42,3 +42,15 @@ model Ticket {
   @@index([applicantId])
   @@index([status])
 }
+
+model VoiceSession {
+  id          String   @id @default(cuid())
+  guildId     String
+  userId      String
+  joinedAt    DateTime
+  leftAt      DateTime
+  durationSec Int
+
+  @@index([guildId, userId])
+  @@index([leftAt])
+}
