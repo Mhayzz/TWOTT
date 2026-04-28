@@ -16,6 +16,19 @@ import { baseEmbed, successEmbed, errorEmbed, infoEmbed, COLORS } from '../lib/e
 const EPHEMERAL = { flags: MessageFlags.Ephemeral };
 const DELETE_DELAY_MS = 5000;
 
+/**
+ * Merge DB config with environment-variable fallbacks so the bot can be
+ * fully configured via Railway env vars without running /ticket config.
+ */
+function resolveConfig(config) {
+  return {
+    ticketCategoryId: config?.ticketCategoryId ?? process.env.TICKET_CATEGORY_ID ?? null,
+    ticketStaffRoleId: config?.ticketStaffRoleId ?? process.env.TICKET_STAFF_ROLE_ID ?? null,
+    ticketLogChannelId: config?.ticketLogChannelId ?? process.env.TICKET_LOG_CHANNEL_ID ?? null,
+    ticketAcceptRoleId: config?.ticketAcceptRoleId ?? process.env.TICKET_ACCEPT_ROLE_ID ?? null,
+  };
+}
+
 export async function handleTicketInteraction(interaction) {
   const id = interaction.customId;
 
@@ -119,10 +132,11 @@ async function submitApplication(interaction) {
     return;
   }
 
-  const config = await prisma.guildConfig.findUnique({ where: { guildId: interaction.guildId } });
-  if (!config?.ticketStaffRoleId) {
+  const dbConfig = await prisma.guildConfig.findUnique({ where: { guildId: interaction.guildId } });
+  const config = resolveConfig(dbConfig);
+  if (!config.ticketStaffRoleId) {
     await interaction.editReply({
-      embeds: [errorEmbed('Système non configuré', 'Le staff doit définir un rôle staff via `/ticket config staff_role:@…` avant que les tickets soient utilisables.')],
+      embeds: [errorEmbed('Système non configuré', 'Aucun rôle staff défini. Utilise `/ticket config staff_role:@…` ou définis `TICKET_STAFF_ROLE_ID` dans Railway.')],
     });
     return;
   }
@@ -139,10 +153,11 @@ async function submitApplication(interaction) {
     return;
   }
 
-  // Atomically increment ticket counter
-  const updatedConfig = await prisma.guildConfig.update({
+  // Atomically increment ticket counter (upsert in case no /ticket config was run)
+  const updatedConfig = await prisma.guildConfig.upsert({
     where: { guildId: interaction.guildId },
-    data: { ticketCounter: { increment: 1 } },
+    create: { guildId: interaction.guildId, ticketCounter: 1 },
+    update: { ticketCounter: { increment: 1 } },
   });
   const number = updatedConfig.ticketCounter;
 
@@ -253,10 +268,11 @@ async function submitApplication(interaction) {
 // ────────────────────────────────────────────────────────────────────────────────
 
 async function ensureStaff(interaction, ticket) {
-  const config = await prisma.guildConfig.findUnique({ where: { guildId: interaction.guildId } });
+  const dbConfig = await prisma.guildConfig.findUnique({ where: { guildId: interaction.guildId } });
+  const config = resolveConfig(dbConfig);
   const isStaff =
     interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) ||
-    (config?.ticketStaffRoleId && interaction.member?.roles?.cache?.has(config.ticketStaffRoleId));
+    (config.ticketStaffRoleId && interaction.member?.roles?.cache?.has(config.ticketStaffRoleId));
   if (!isStaff) {
     await interaction.reply({
       embeds: [errorEmbed('Permission refusée', 'Seul le staff peut traiter cette candidature.')],
@@ -432,10 +448,11 @@ async function askCloseConfirm(interaction, ticketId) {
   }
 
   // Allow staff or the applicant themselves to close
-  const config = await prisma.guildConfig.findUnique({ where: { guildId: interaction.guildId } });
+  const dbConfig = await prisma.guildConfig.findUnique({ where: { guildId: interaction.guildId } });
+  const config = resolveConfig(dbConfig);
   const isStaff =
     interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild) ||
-    (config?.ticketStaffRoleId && interaction.member?.roles?.cache?.has(config.ticketStaffRoleId));
+    (config.ticketStaffRoleId && interaction.member?.roles?.cache?.has(config.ticketStaffRoleId));
   const isApplicant = ticket.applicantId === interaction.user.id;
   if (!isStaff && !isApplicant) {
     await interaction.reply({ embeds: [errorEmbed('Permission refusée', 'Seul le staff ou le candidat peut fermer ce ticket.')], ...EPHEMERAL });
@@ -485,8 +502,9 @@ async function doClose(interaction, ticketId) {
 // ────────────────────────────────────────────────────────────────────────────────
 
 async function postLog(interaction, ticket, status, reason, warnings, dmSent) {
-  const config = await prisma.guildConfig.findUnique({ where: { guildId: interaction.guildId } });
-  if (!config?.ticketLogChannelId) return;
+  const dbConfig = await prisma.guildConfig.findUnique({ where: { guildId: interaction.guildId } });
+  const config = resolveConfig(dbConfig);
+  if (!config.ticketLogChannelId) return;
   const logChannel = await interaction.client.channels.fetch(config.ticketLogChannelId).catch(() => null);
   if (!logChannel) return;
 
