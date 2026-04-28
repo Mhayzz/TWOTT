@@ -19,6 +19,9 @@ model GuildConfig {
   ticketAcceptRoleId String?
   ticketCounter      Int      @default(0)
 
+  // Voice leaderboard live message
+  voiceLeaderboardMessageId String?
+
   updatedAt          DateTime @updatedAt
 }
 
