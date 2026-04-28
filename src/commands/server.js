@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, ChannelType, PermissionsBitField, MessageFlags } from 'discord.js';
 import { baseEmbed, errorEmbed, successEmbed, COLORS } from '../lib/embeds.js';
 
 const MC_HOST = process.env.MC_SERVER_HOST ?? 'play.saochronicles.fr';
@@ -15,16 +15,8 @@ function buildConnectionEmbed() {
       ].join('\n'),
     )
     .addFields(
-      {
-        name: '🖥️ Adresse IP',
-        value: '```' + MC_HOST + '```',
-        inline: false,
-      },
-      {
-        name: '📦 Version requise',
-        value: '```Java Edition ' + MC_VERSION + '```',
-        inline: false,
-      },
+      { name: '🖥️ Adresse IP', value: '```' + MC_HOST + '```', inline: false },
+      { name: '📦 Version requise', value: '```Java Edition ' + MC_VERSION + '```', inline: false },
       {
         name: '📋 Comment se connecter',
         value: [
@@ -47,13 +39,20 @@ export default {
     .addSubcommand((s) =>
       s
         .setName('panel')
-        .setDescription('Poster le message de connexion au serveur dans un salon')
+        .setDescription('Poster le message de connexion dans un salon existant')
         .addChannelOption((o) =>
-          o
-            .setName('salon')
-            .setDescription('Salon cible (par défaut : salon courant)')
-            .addChannelTypes(ChannelType.GuildText)
-            .setRequired(false),
+          o.setName('salon').setDescription('Salon cible (par défaut : salon courant)').addChannelTypes(ChannelType.GuildText).setRequired(false),
+        ),
+    )
+    .addSubcommand((s) =>
+      s
+        .setName('createchannel')
+        .setDescription('Créer un salon privé dédié à la connexion au serveur')
+        .addRoleOption((o) =>
+          o.setName('role_acces').setDescription('Rôle qui peut voir ce salon (ex: @Membre). Laisser vide = admins seulement.').setRequired(false),
+        )
+        .addStringOption((o) =>
+          o.setName('categorie_id').setDescription('ID de la catégorie où créer le salon (optionnel)').setRequired(false),
         ),
     )
     .addSubcommand((s) => s.setName('info').setDescription('Afficher les infos de connexion ici'))
@@ -80,6 +79,62 @@ export default {
       await interaction.reply({
         embeds: [successEmbed('Message posté', `Les infos de connexion sont dans ${channel}.`)],
         flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    if (sub === 'createchannel') {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+      const accessRole = interaction.options.getRole('role_acces');
+      const categoryId = interaction.options.getString('categorie_id');
+
+      // Permission overwrites: hidden from @everyone, visible to chosen role + admins
+      const permissionOverwrites = [
+        {
+          id: interaction.guild.roles.everyone.id,
+          deny: [PermissionsBitField.Flags.ViewChannel],
+        },
+        {
+          id: interaction.guild.members.me.id,
+          allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.EmbedLinks],
+        },
+      ];
+
+      if (accessRole) {
+        permissionOverwrites.push({
+          id: accessRole.id,
+          allow: [PermissionsBitField.Flags.ViewChannel],
+          deny: [PermissionsBitField.Flags.SendMessages],
+        });
+      }
+
+      const channelOptions = {
+        name: '🔒・connexion-sao',
+        type: ChannelType.GuildText,
+        topic: `Infos de connexion au serveur Minecraft SAO Chronicles — ${MC_HOST}`,
+        permissionOverwrites,
+      };
+
+      if (categoryId) {
+        const category = interaction.guild.channels.cache.get(categoryId);
+        if (category) channelOptions.parent = categoryId;
+      }
+
+      const newChannel = await interaction.guild.channels.create(channelOptions);
+      const msg = await newChannel.send({ embeds: [buildConnectionEmbed()] });
+      await msg.pin().catch(() => {});
+
+      await interaction.editReply({
+        embeds: [
+          successEmbed(
+            '🔒 Salon créé',
+            `${newChannel} est prêt.\n\n` +
+            `• Visible par : ${accessRole ? accessRole.toString() : '*admins uniquement*'}\n` +
+            `• Le message de connexion a été posté et épinglé.\n\n` +
+            `Pour autoriser d'autres rôles : **Paramètres du salon → Permissions**.`,
+          ),
+        ],
       });
     }
   },
