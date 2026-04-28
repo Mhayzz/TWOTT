@@ -6,8 +6,8 @@ node_modules/
 # Prisma
 prisma/migrations/dev.db*
 
-# Logs
-logs/
+# Logs (top-level only — src/logs/ is real code)
+/logs/
 *.log
 npm-debug.log*
 
