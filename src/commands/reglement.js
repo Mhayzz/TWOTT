@@ -11,6 +11,9 @@ import { baseEmbed, successEmbed, errorEmbed, infoEmbed, COLORS } from '../lib/e
 
 const VISITOR_ROLE_ID = process.env.VISITOR_ROLE_ID ?? '1418179781408854091';
 const DEFAULT_REGLEMENT_CHANNEL_ID = process.env.REGLEMENT_CHANNEL_ID ?? '1418179782553899131';
+const REGLEMENT_BANNER_URL =
+  process.env.REGLEMENT_BANNER_URL ??
+  'https://media.discordapp.net/attachments/1418179783405342794/1498784976693362759/ezgif-409cda57ce115153.gif?ex=69f26bc8&is=69f11a48&hm=1387e2160ea9c3c1411e39d5d2411d7b156ef67e52b8b64efaa38131133604ab&=';
 
 function buildReglementEmbed() {
   return baseEmbed(COLORS.PRIMARY)
@@ -30,7 +33,8 @@ function buildReglementEmbed() {
         'Tu recevras alors le rôle **Prisonnier de l\'Aincrad** et auras accès au reste du serveur.',
       ].join('\n'),
     )
-    .setFooter({ text: 'TWOTT • Règlement' });
+    .setFooter({ text: 'TWOTT • Règlement' })
+    .setImage(REGLEMENT_BANNER_URL);
 }
 
 function buildReglementButton() {
