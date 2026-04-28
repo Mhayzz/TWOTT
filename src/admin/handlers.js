@@ -10,7 +10,7 @@ import {
   MessageFlags,
 } from 'discord.js';
 import prisma from '../lib/prisma.js';
-import { applyAutoRoles, RANKS, nextRank, previousRank } from '../lib/roles.js';
+import { applyAutoRoles, RANKS, nextRank, previousRank, summarizeRolesResult } from '../lib/roles.js';
 import { baseEmbed, successEmbed, errorEmbed, infoEmbed, COLORS } from '../lib/embeds.js';
 
 const EPHEMERAL = { flags: MessageFlags.Ephemeral };
@@ -143,13 +143,15 @@ async function submitRecruit(interaction, userId) {
     create: { discordId: userId, mcUsername, className, rank: 'Recrue' },
   });
 
-  await applyAutoRoles(interaction.guild, member);
+  const rolesResult = await applyAutoRoles(interaction.guild, member);
+  const summary = summarizeRolesResult(rolesResult);
 
   await interaction.reply({
     embeds: [
       successEmbed(
         '🐺 Recrue enregistrée',
-        `<@${userId}> a été ajouté à la guilde.\n**Pseudo MC :** \`${mcUsername}\`\n**Classe :** ${className ?? '—'}\n**Rang :** ${member.rank}`,
+        `<@${userId}> a été ajouté à la guilde.\n**Pseudo MC :** \`${mcUsername}\`\n**Classe :** ${className ?? '—'}\n**Rang :** ${member.rank}` +
+          (summary ? `\n\n${summary}` : ''),
       ),
     ],
     ...EPHEMERAL,
@@ -172,9 +174,10 @@ async function doPromote(interaction, userId) {
     return;
   }
   const updated = await prisma.member.update({ where: { discordId: userId }, data: { rank: next } });
-  await applyAutoRoles(interaction.guild, updated);
+  const rolesResult = await applyAutoRoles(interaction.guild, updated);
+  const summary = summarizeRolesResult(rolesResult);
   await interaction.update({
-    embeds: [successEmbed('⬆️ Promotion', `<@${userId}> : **${member.rank}** → **${next}**`)],
+    embeds: [successEmbed('⬆️ Promotion', `<@${userId}> : **${member.rank}** → **${next}**` + (summary ? `\n\n${summary}` : ''))],
     components: [],
   });
 }
@@ -191,9 +194,10 @@ async function doDemote(interaction, userId) {
     return;
   }
   const updated = await prisma.member.update({ where: { discordId: userId }, data: { rank: prev } });
-  await applyAutoRoles(interaction.guild, updated);
+  const rolesResult = await applyAutoRoles(interaction.guild, updated);
+  const summary = summarizeRolesResult(rolesResult);
   await interaction.update({
-    embeds: [successEmbed('⬇️ Rétrogradation', `<@${userId}> : **${member.rank}** → **${prev}**`)],
+    embeds: [successEmbed('⬇️ Rétrogradation', `<@${userId}> : **${member.rank}** → **${prev}**` + (summary ? `\n\n${summary}` : ''))],
     components: [],
   });
 }
@@ -227,9 +231,10 @@ async function submitSetClass(interaction, userId) {
     where: { discordId: userId },
     data: { className },
   });
-  await applyAutoRoles(interaction.guild, updated);
+  const rolesResult = await applyAutoRoles(interaction.guild, updated);
+  const summary = summarizeRolesResult(rolesResult);
   await interaction.reply({
-    embeds: [successEmbed('🛡️ Classe mise à jour', `<@${userId}> : ${className ?? '*aucune*'}`)],
+    embeds: [successEmbed('🛡️ Classe mise à jour', `<@${userId}> : ${className ?? '*aucune*'}` + (summary ? `\n\n${summary}` : ''))],
     ...EPHEMERAL,
   });
 }

@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import prisma from '../lib/prisma.js';
 import { errorEmbed, baseEmbed, COLORS } from '../lib/embeds.js';
-import { applyAutoRoles } from '../lib/roles.js';
+import { applyAutoRoles, summarizeRolesResult } from '../lib/roles.js';
 
 export default {
   data: new SlashCommandBuilder()
@@ -33,19 +33,19 @@ export default {
       create: { discordId, mcUsername, className, rank: 'Recrue' },
     });
 
-    await applyAutoRoles(interaction.guild, member);
+    const rolesResult = await applyAutoRoles(interaction.guild, member);
+    const summary = summarizeRolesResult(rolesResult);
 
-    await interaction.reply({
-      embeds: [
-        baseEmbed(COLORS.PRIMARY)
-          .setTitle('🐺 Bienvenue dans la meute')
-          .setDescription(`<@${discordId}> a rejoint **The Wolves Of The Trinity**.`)
-          .addFields(
-            { name: 'Pseudo MC', value: '`' + mcUsername + '`', inline: true },
-            { name: 'Classe', value: className ?? '—', inline: true },
-            { name: 'Rang', value: member.rank, inline: true },
-          ),
-      ],
-    });
+    const embed = baseEmbed(COLORS.PRIMARY)
+      .setTitle('🐺 Bienvenue dans la meute')
+      .setDescription(`<@${discordId}> a rejoint **The Wolves Of The Trinity**.`)
+      .addFields(
+        { name: 'Pseudo MC', value: '`' + mcUsername + '`', inline: true },
+        { name: 'Classe', value: className ?? '—', inline: true },
+        { name: 'Rang', value: member.rank, inline: true },
+      );
+    if (summary) embed.addFields({ name: 'Rôles', value: summary });
+
+    await interaction.reply({ embeds: [embed] });
   },
 };
