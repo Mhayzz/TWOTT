@@ -1,5 +1,16 @@
 import { Events, ChannelType, AuditLogEvent } from 'discord.js';
 import { logEmbed, postLog, findAuditEntry, addExecutor, LOG_COLORS } from './logger.js';
+import prisma from '../lib/prisma.js';
+
+async function isManagedStatusChannel(channelId, guildId) {
+  if (!guildId || !channelId) return false;
+  try {
+    const config = await prisma.guildConfig.findUnique({ where: { guildId } });
+    return config?.ipChannelId === channelId || config?.statusChannelId === channelId;
+  } catch {
+    return false;
+  }
+}
 
 const TYPE_LABELS = {
   [ChannelType.GuildText]: 'textuel',
@@ -44,6 +55,8 @@ export function registerChannelLogs(client) {
 
   client.on(Events.ChannelUpdate, async (oldCh, newCh) => {
     if (!newCh.guild) return;
+    // Skip the IP / status voice channels — they're renamed by the bot every few minutes
+    if (await isManagedStatusChannel(newCh.id, newCh.guildId)) return;
     const fields = [];
     if (oldCh.name !== newCh.name) fields.push({ name: 'Nom', value: `\`${oldCh.name}\` → \`${newCh.name}\`` });
     if (oldCh.topic !== newCh.topic) {
