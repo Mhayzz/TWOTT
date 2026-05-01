@@ -77,9 +77,9 @@ export const WIKI_SECTIONS = [
         '*Format : `Niveau · Temps · Coût · XP` puis ingrédients.*',
       ].join('\n'),
       fields: [
-        { name: '🪖 Casque en sanglier', value: '`lvl 2 · 15s · 10 cor · +40 xp`\n6 peau de sanglier · 6 fibre végétale · 4 défense de sanglier · 2 lingot de laiton' },
-        { name: '🛡️ Plastron en sanglier', value: '`lvl 3 · 15s · 10 cor · +40 xp`\n12 peau de sanglier · 10 fibre végétale · 8 défense de sanglier · 3 lingot de laiton' },
-        { name: '👖 Pantalon en sanglier', value: '`lvl 2 · 15s · 10 cor · +40 xp`\n10 peau de sanglier · 7 fibre végétale · 6 défense de sanglier · 3 lingot de laiton' },
+        { name: '🪖 Casque en sanglier', value: '`lvl 2 · 15s · 10 cor · +40 xp`\n6 peau de sanglier · 5 fibre végétale · 3 défense de sanglier · 2 lingot de laiton' },
+        { name: '🛡️ Plastron en sanglier', value: '`lvl 3 · 15s · 10 cor · +40 xp`\n12 peau de sanglier · 10 fibre végétale · 4 défense de sanglier · 3 lingot de laiton' },
+        { name: '👖 Pantalon en sanglier', value: '`lvl 2 · 15s · 10 cor · +40 xp`\n10 peau de sanglier · 9 fibre végétale · 4 défense de sanglier · 3 lingot de laiton' },
         { name: '🥾 Bottes en sanglier', value: '`lvl 2 · 15s · 10 cor · +40 xp`\n6 peau de sanglier · 5 fibre végétale · 2 défense de sanglier · 1 lingot de laiton' },
         { name: '🗡️ Dague en sanglier', value: '`lvl 3 · 30s · 10 cor · +40 xp`\n12 défense de sanglier · 16 fibre végétale · 10 peau de sanglier · 1 manche fragile · 2 lingot de laiton' },
         { name: '⚔️ Épée en sanglier', value: '`lvl 3 · 30s · 10 cor · +40 xp`\n12 défense de sanglier · 16 fibre végétale · 6 peau de sanglier · 1 manche fragile · 2 lingot de laiton' },
@@ -96,7 +96,7 @@ export const WIKI_SECTIONS = [
     description: 'Tier 2',
     embed: {
       title: '🐺 Set Cuir Renforcé / Sauvage — Forgeron lvl 5-6',
-      description: '**Tier 2** — Matériaux issus principalement des loups et liens végétaux. Les armes prennent le préfixe « sauvage ».',
+      description: '**Tier 2** — Cuir renforcé + matériaux issus des loups (lien de loup) et de plantes (fibre, résine). Les armes prennent le préfixe « sauvage ».',
       fields: [
         { name: '🪖 Casque en cuir renforcé', value: '`lvl 5 · 25s · 20 cor · +80 xp`\n8 fibre végétale · 3 lien de loup · 4 résine · 8 cuir renforcé · 2 lingot de laiton' },
         { name: '🛡️ Plastron en cuir renforcé', value: '`lvl 6 · 25s · 20 cor · +80 xp`\n13 fibre végétale · 5 lien de loup · 6 résine · 11 cuir renforcé · 7 lingot de laiton' },
