@@ -269,7 +269,7 @@ export const WIKI_SECTIONS = [
         '**Outil de débutant** : 🪒 Houe du débutant — `200 cor` · COMMUN · efficacité 5 · niveau 1 à 20.',
       ].join('\n'),
       fields: [
-        { name: '🍞 Pain', value: '`lvl 1 · 5s · 1 cor · +8 xp`\n3 blé' },
+        { name: '🍞 Pain', value: '`lvl 1 · 5s · 1 cor · +8 xp`\n3 blé\n*⚠️ ingrédient à confirmer in-game (le tooltip semble afficher "Pain" plutôt que "Blé")*' },
         { name: '🟫 Cuir renforcé', value: '`lvl 1 · 5s · 3 cor`\n2 peau de sanglier · 2 fibre végétale · 1 peau de loup' },
         { name: '🩹 Lien de loup', value: '`lvl 1 · 5s · 3 cor · +10 xp`\n1 graisse de loup · 2 boule de slime verte' },
         { name: '🪢 Corde', value: '`lvl 5 · 8s · 6 cor · +30 xp`\n5 fibre végétale · 1 résine' },
