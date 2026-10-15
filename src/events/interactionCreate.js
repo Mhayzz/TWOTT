@@ -1,8 +1,8 @@
 import { Events, MessageFlags } from 'discord.js';
-import { errorEmbed } from '../lib/embeds.js';
-import { handleTicketInteraction } from '../tickets/handlers.js';
+import { errorEmbed, infoEmbed } from '../lib/embeds.js';
 import { handleReglementButton } from '../commands/reglement.js';
 import { handleWikiInteraction } from '../wiki/handlers.js';
+import { IS_LITE } from '../lib/mode.js';
 
 export default {
   name: Events.InteractionCreate,
@@ -18,11 +18,6 @@ export default {
       const id = interaction.customId;
       if (!id) return;
 
-      if (id.startsWith('ticket:')) {
-        await handleTicketInteraction(interaction);
-        return;
-      }
-
       if (id.startsWith('reglement:')) {
         await handleReglementButton(interaction);
         return;
@@ -30,6 +25,20 @@ export default {
 
       if (id.startsWith('wiki:')) {
         await handleWikiInteraction(interaction);
+        return;
+      }
+
+      if (id.startsWith('ticket:')) {
+        if (IS_LITE) {
+          await interaction.reply({
+            embeds: [infoEmbed('⏸️ Candidatures en pause', 'Les candidatures sont fermées pour le moment. Reviens plus tard !')],
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+        // Import dynamique : le système de tickets (et Prisma) n'est chargé qu'en mode complet.
+        const { handleTicketInteraction } = await import('../tickets/handlers.js');
+        await handleTicketInteraction(interaction);
         return;
       }
     } catch (err) {

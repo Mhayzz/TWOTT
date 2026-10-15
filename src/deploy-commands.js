@@ -3,6 +3,7 @@ import { REST, Routes } from 'discord.js';
 import { readdirSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
+import { IS_LITE, isCommandFileEnabled } from './lib/mode.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -14,7 +15,7 @@ if (!DISCORD_TOKEN || !CLIENT_ID || !GUILD_ID) {
 
 const commands = [];
 const dir = join(__dirname, 'commands');
-for (const file of readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+for (const file of readdirSync(dir).filter((f) => f.endsWith('.js') && isCommandFileEnabled(f))) {
   const mod = await import(pathToFileURL(join(dir, file)).href);
   const cmd = mod.default ?? mod;
   if (cmd?.data) commands.push(cmd.data.toJSON());
@@ -23,7 +24,7 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith('.js'))) {
 const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
 try {
-  console.log(`Déploiement de ${commands.length} commandes sur la guilde ${GUILD_ID}…`);
+  console.log(`Déploiement de ${commands.length} commandes${IS_LITE ? ' (mode lite)' : ''} sur la guilde ${GUILD_ID}…`);
   const data = await rest.put(
     Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands },

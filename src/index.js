@@ -3,10 +3,12 @@ import { Client, Collection, GatewayIntentBits, Partials, Options } from 'discor
 import { readdirSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
+import { IS_LITE, isCommandFileEnabled } from './lib/mode.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const requiredEnv = ['DISCORD_TOKEN', 'CLIENT_ID', 'GUILD_ID', 'DATABASE_URL'];
+const requiredEnv = ['DISCORD_TOKEN', 'CLIENT_ID', 'GUILD_ID'];
+if (!IS_LITE) requiredEnv.push('DATABASE_URL');
 for (const key of requiredEnv) {
   if (!process.env[key]) {
     console.error(`Variable d'environnement manquante: ${key}`);
@@ -14,7 +16,33 @@ for (const key of requiredEnv) {
   }
 }
 
-const client = new Client({
+// Mode lite : un seul intent et quasiment aucun cache, pour consommer le moins de RAM possible.
+const liteOptions = {
+  intents: [GatewayIntentBits.Guilds],
+  makeCache: Options.cacheWithLimits({
+    MessageManager: 0,
+    PresenceManager: 0,
+    ReactionManager: 0,
+    VoiceStateManager: 0,
+    ThreadManager: 0,
+    ThreadMemberManager: 0,
+    GuildBanManager: 0,
+    GuildInviteManager: 0,
+    GuildEmojiManager: 0,
+    GuildStickerManager: 0,
+    GuildScheduledEventManager: 0,
+    StageInstanceManager: 0,
+    AutoModerationRuleManager: 0,
+    ApplicationCommandManager: 0,
+    UserManager: 0,
+    GuildMemberManager: {
+      maxSize: 0,
+      keepOverLimit: (member) => member.id === member.client.user.id,
+    },
+  }),
+};
+
+const fullOptions = {
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
@@ -39,13 +67,15 @@ const client = new Client({
       lifetime: 24 * 60 * 60,   // remove cached messages older than 24h
     },
   },
-});
+};
+
+const client = new Client(IS_LITE ? liteOptions : fullOptions);
 
 client.commands = new Collection();
 
 async function loadCommands() {
   const dir = join(__dirname, 'commands');
-  for (const file of readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+  for (const file of readdirSync(dir).filter((f) => f.endsWith('.js') && isCommandFileEnabled(f))) {
     const mod = await import(pathToFileURL(join(dir, file)).href);
     const cmd = mod.default ?? mod;
     if (!cmd?.data?.name || typeof cmd.execute !== 'function') {
