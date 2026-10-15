@@ -1,6 +1,8 @@
-// BOT_MODE=lite : mode basse consommation, sans base de données.
+// Mode lite : basse consommation, sans base de données.
 // Seuls le règlement (rôle Prisonnier de l'Aincrad) et le wiki restent actifs.
-export const IS_LITE = (process.env.BOT_MODE ?? '').toLowerCase() === 'lite';
+// Par défaut le bot tourne en lite. BOT_MODE=full dans Railway force le mode complet.
+const DEFAULT_MODE = 'lite';
+export const IS_LITE = (process.env.BOT_MODE || DEFAULT_MODE).toLowerCase() === 'lite';
 
 export const LITE_COMMAND_FILES = ['reglement.js', 'wiki.js'];
 

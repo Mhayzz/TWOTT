@@ -51,10 +51,10 @@ Permissions :
 
 ## Mode lite (basse consommation)
 
-Mettre `BOT_MODE=lite` dans les variables Railway, puis redéployer.
+Le bot tourne en lite **par défaut**. Pour le mode complet : `BOT_MODE=full` dans Railway (ou remettre `DEFAULT_MODE` à `full` dans `src/lib/mode.js`).
 
 - Restent actifs : le règlement (bouton → rôle Prisonnier de l'Aincrad) et le wiki.
 - Désactivés : tickets (réponse "candidatures en pause"), bienvenue, logs, statut serveur, voice tracker, leaderboard.
 - Pas besoin de base de données : le service Postgres peut être arrêté.
 
-Pour revenir au mode complet : retirer `BOT_MODE` (ou le laisser vide), relancer Postgres, redéployer.
+Pour revenir au mode complet : relancer Postgres puis passer en `full`.
